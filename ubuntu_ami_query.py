@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 import argparse
-import nagiosplugin
 import os
 from httplib2 import Http
 from urllib import urlencode
 
 
 def connectToCI():
+    '''Get the Json list of all AMIs'''
     h = Http()
     data = dict()
     url = "http://cloud-images.ubuntu.com/locator/ec2/releasesTable"
@@ -21,14 +21,20 @@ parser.add_argument("-r", dest="searchZone", type=str, help="Search Zone", defau
 parser.add_argument("--non_lts", dest="nonLTS", action="store_true", help="default behavious fetches only LTS")
 args = parser.parse_args()
 
+'''Check if it should exclude LTS'''
+
 lts = None
 if args.nonLTS:
     lts = "LTS"
 resp, content = connectToCI()
 
+'''Fix the recieved Json File'''
+
 fixContent = content[:-7]  # Remove Tailing ,
 contentList = fixContent.split("[")
 contentList = contentList[2:]
+
+'''Index all AMIs'''
 
 for i in range(0, len(contentList)):
     contentList[i] = contentList[i][1:].split('","')  # Strip the "
@@ -46,18 +52,22 @@ for i in range(0, len(contentList)):
                       "AMI_ID": contentList[i][6][ami_id_pos:-4],
                       "AKI_ID": contentList[i][7][:-4]}
 
+'''Index the Search Parameters'''
+
 searchParamsFull = [args.searchZone,
                     args.searchName,
                     args.searchInstanceType,
-                    "amd64"]
+                    "amd64"]  # Hardcode only find amd64 type AMIs
 
 searchParams = []
 for param in searchParamsFull:
     if param is not None:
         searchParams.append(param)
 matchList = []
-match = ""
 i = 0
+
+'''Compare searchParams to AMI Values'''
+
 for ami in contentList:
     matches = 0
     for value in ami.values():
@@ -65,14 +75,17 @@ for ami in contentList:
             matches += 1
     if matches == len(searchParams):
         matchList.append(ami)
-        match = ami["AMI_ID"]
     i += 1
+
+'''Find Latest AMI Release'''
 
 maxDate = 0
 for match in matchList:
     if float(match["Release"]) > float(maxDate):
         maxDate = match["Release"]
         newest = match
+
+'''Read/Write AMI_ID to File'''
 
 fileName = "ami_id.properties"
 if not os.path.exists(fileName):
