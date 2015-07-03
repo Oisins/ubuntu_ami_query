@@ -15,10 +15,10 @@ def connectToCI():
     return resp, content
 
 parser = argparse.ArgumentParser(description="Search for a AMI Version")
-parser.add_argument("-r", dest="searchZone", type=str, help="Search Zone", default="eu-west-1")
 parser.add_argument("-n", dest="searchName", type=str, help="Search Name")
+parser.add_argument("-i", dest="searchInstanceType", type=str, help="Search Instance_Type")
+parser.add_argument("-r", dest="searchZone", type=str, help="Search Zone", default="eu-west-1")
 parser.add_argument("--non_lts", dest="nonLTS", action="store_true", help="default behavious fetches only LTS")
-parser.add_argument("-i", dest="searchInstanceType", type=str, help="Search Instance_Type")  # , default="ebs")
 args = parser.parse_args()
 
 lts = None
@@ -31,7 +31,7 @@ contentList = fixContent.split("[")
 contentList = contentList[2:]
 
 for i in range(0, len(contentList)):
-    contentList[i] = contentList[i][1:].split('","')  # Strip the " & the last element
+    contentList[i] = contentList[i][1:].split('","')  # Strip the "
     '''Find the AMI_ID by striping the href und leaving the ID'''
     firstPos = contentList[i][6].find('"') + 1  # Find the first "
     ami_id = contentList[i][6][firstPos:].find('"') + len(contentList[i][6][:firstPos])  # Find the 2nd " in the shortend String
@@ -48,7 +48,8 @@ for i in range(0, len(contentList)):
 
 searchParamsFull = [args.searchZone,
                     args.searchName,
-                    args.searchInstanceType]
+                    args.searchInstanceType,
+                    "amd64"]
 
 searchParams = []
 for param in searchParamsFull:
@@ -73,15 +74,15 @@ for match in matchList:
         maxDate = match["Release"]
         newest = match
 
-if not os.path.exists("ami_id.properties"):
-  file = open("ami_id.properties", "w")
-  file.write(newest["AMI_ID"])
-  file.close()
-else:
-  file = open("ami_id.properties", "r")
-  content = file.read()
-  file.close()
-  if content != newest["AMI_ID"]:
-    file = open("ami_id.properties", "w")
+fileName = "ami_id.properties"
+if not os.path.exists(fileName):
+    file = open(fileName, "w")
     file.write(newest["AMI_ID"])
     file.close()
+else:
+    file = open(fileName, "w+")
+    content = file.read()
+    if content != newest["AMI_ID"]:
+        file.truncate()
+        file.write(newest["AMI_ID"])
+        file.close()
