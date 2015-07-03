@@ -25,6 +25,7 @@ var/
 .DS_Store
 json.json
 jsonError.json
+*.properties
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
