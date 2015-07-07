@@ -11,7 +11,7 @@ class mainTest(unittest.TestCase):
 
         argsMock = Mock()
         argsMock.search = ["eu-west-1", "amd64", "^ebs"]
-        
+
         ubuntu_ami_query.connectToCI = Mock(return_value=resp)
         ubuntu_ami_query.readArgs = Mock(return_value=argsMock)
         ubuntu_ami_query.logLatest = Mock()
