@@ -75,8 +75,10 @@ def findLatest(matchList):
     assert newest is not None, "No AMI Found"
     return newest
 
+
 def logLatest(latest):
     print(latest)
+
 
 def main():
     args = readArgs()
