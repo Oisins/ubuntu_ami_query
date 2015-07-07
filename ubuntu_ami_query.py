@@ -75,6 +75,8 @@ def findLatest(matchList):
     assert newest is not None, "No AMI Found"
     return newest
 
+def logLatest(latest):
+    print(latest)
 
 def main():
     args = readArgs()
@@ -90,7 +92,7 @@ def main():
     searchParams = args.search
     matchList = compareParams(searchParams, amiList)
     latest = findLatest(matchList)
-    print(latest)
+    logLatest(latest["AMI_ID"])
 
 
 if __name__ == "__main__":

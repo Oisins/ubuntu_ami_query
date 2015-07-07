@@ -1,0 +1,34 @@
+{
+  "aaData": [   
+    [
+      "eu-west-1",
+      "trusty",
+      "14.04",
+      "i386",
+      "hvm:ebs",
+      "20150629",
+      "<a href=\"https://console.amazonaws-us-gov.com/ec2/home?region=us-gov-west-1#launchAmi=ami-57cfaf74\">ami-57cfaf74</a>",
+      "aki-1fe98d3c"
+    ],
+    [
+      "eu-west-1",
+      "trusty",
+      "14.04 LTS",
+      "amd64",
+      "instance-store",
+      "20150629",
+      "<a href=\"https://console.amazonaws-us-gov.com/ec2/home?region=us-gov-west-1#launchAmi=ami-7bcfaf58\">ami-7bcfaf58</a>",
+      "aki-1de98d3e"
+    ],
+    [
+      "eu-west-1",
+      "trusty",
+      "14.04 LTS",
+      "amd64",
+      "ebs",
+      "20150629",
+      "<a href=\"https://console.amazonaws-us-gov.com/ec2/home?region=us-gov-west-1#launchAmi=ami-73cfaf50\">ami-73cfaf50</a>",
+      "aki-1fe98d3c"
+    ],
+ ]
+}
