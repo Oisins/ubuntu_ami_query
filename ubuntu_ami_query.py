@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 import argparse
 import os
+import json
+import re
+import xml.etree.ElementTree as ET
 from httplib2 import Http
 from urllib import urlencode
 
@@ -12,90 +15,84 @@ def connectToCI():
     url = "http://cloud-images.ubuntu.com/locator/ec2/releasesTable"
     resp, content = h.request(url, "POST", urlencode(data))
     assert resp["status"] == "200", "Connection Failed"
-    return resp, content
+    return content
 
-parser = argparse.ArgumentParser(description="Search for a AMI Version")
-parser.add_argument("-n", dest="searchName", type=str, help="Search Name")
-parser.add_argument("-i", dest="searchInstanceType", type=str, help="Search Instance_Type")
-parser.add_argument("-r", dest="searchZone", type=str, help="Search Zone", default="eu-west-1")
-parser.add_argument("--non_lts", dest="nonLTS", action="store_true", help="default behavious fetches only LTS")
-args = parser.parse_args()
 
-'''Check if it should exclude LTS'''
+def readArgs():
+    parser = argparse.ArgumentParser(description="Search for a AMI Version")
+    parser.add_argument("-s", required=True, type=str, help="Search")
 
-lts = None
-if args.nonLTS:
-    lts = "LTS"
-resp, content = connectToCI()
+    args = parser.parse_args()
+    args.search = args.s.split(" ")
+    return args
 
-'''Fix the recieved Json File'''
 
-fixContent = content[:-7]  # Remove Tailing ,
-contentList = fixContent.split("[")
-contentList = contentList[2:]
+def indexAMI(contentList):
+    '''Index all AMIs'''
+    data = []
+    for i in contentList:
+        data.append({"Zone": i[0],
+                     "Name": i[1],
+                     "Version": i[2],
+                     "Arch": i[3],
+                     "Instance_Type": i[4],
+                     "Release": i[5],
+                     "AMI_ID": ET.fromstring(i[6]).text,
+                     "AKI_ID": i[7]})
+    return data
 
-'''Index all AMIs'''
 
-for i in range(0, len(contentList)):
-    contentList[i] = contentList[i][1:].split('","')  # Strip the "
-    '''Find the AMI_ID by striping the href und leaving the ID'''
-    firstPos = contentList[i][6].find('"') + 1  # Find the first "
-    ami_id = contentList[i][6][firstPos:].find('"') + len(contentList[i][6][:firstPos])  # Find the 2nd " in the shortend String
-    ami_id_pos = ami_id + 2  # Get the Pos by taking of the remaining ">
+def match(searchParams, attribute):
+    for searchParam in searchParams:
+        if re.search(searchParam, attribute):
+            return True
+    return False
 
-    contentList[i] = {"Zone": contentList[i][0],
-                      "Name": contentList[i][1],
-                      "Version": contentList[i][2][-3:],
-                      "Arch": contentList[i][3],
-                      "Instance_Type": contentList[i][4],
-                      "Release": contentList[i][5],
-                      "AMI_ID": contentList[i][6][ami_id_pos:-4],
-                      "AKI_ID": contentList[i][7][:-4]}
 
-'''Index the Search Parameters'''
+def compareParams(searchParams, contentList):
+    '''Compare searchParams to AMI Values'''
+    matchList = []
+    i = 0
 
-searchParamsFull = [args.searchZone,
-                    args.searchName,
-                    args.searchInstanceType,
-                    "amd64"]  # Hardcode only find amd64 type AMIs
+    for ami in contentList:
+        matches = 0
+        for value in ami.itervalues():
+            if match(searchParams, value):
+                matches += 1
+        if matches == len(searchParams):
+            matchList.append(ami)
+        i += 1
+    return matchList
 
-searchParams = []
-for param in searchParamsFull:
-    if param is not None:
-        searchParams.append(param)
-matchList = []
-i = 0
 
-'''Compare searchParams to AMI Values'''
+def findLatest(matchList):
+    '''Find Latest AMI Release'''
+    maxDate = 0
+    newest = None
+    for match in matchList:
+        if float(match["Release"]) > float(maxDate):
+            maxDate = match["Release"]
+            newest = match
+    assert newest is not None, "No AMI Found"
+    return newest
 
-for ami in contentList:
-    matches = 0
-    for value in ami.values():
-        if str(value) in searchParams and ami["Version"] != lts:
-            matches += 1
-    if matches == len(searchParams):
-        matchList.append(ami)
-    i += 1
 
-'''Find Latest AMI Release'''
+def main():
+    args = readArgs()
 
-maxDate = 0
-for match in matchList:
-    if float(match["Release"]) > float(maxDate):
-        maxDate = match["Release"]
-        newest = match
+    content = connectToCI()
 
-'''Read/Write AMI_ID to File'''
+    '''Fix the recieved Json File'''
+    fixContent = content[:-6] + content[-5:]  # Remove Tailing ,
+    contentList = json.loads(fixContent)
+    contentList = contentList["aaData"]
 
-fileName = "ami_id.properties"
-if not os.path.exists(fileName):
-    file = open(fileName, "w")
-    file.write(newest["AMI_ID"])
-    file.close()
-else:
-    file = open(fileName, "w+")
-    content = file.read()
-    if content != newest["AMI_ID"]:
-        file.truncate()
-        file.write(newest["AMI_ID"])
-        file.close()
+    amiList = indexAMI(contentList)
+    searchParams = args.search
+    matchList = compareParams(searchParams, amiList)
+    latest = findLatest(matchList)
+    print(latest)
+
+
+if __name__ == "__main__":
+    main()
