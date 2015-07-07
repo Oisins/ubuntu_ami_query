@@ -4,3 +4,5 @@ re
 xml.etree.ElementTree
 httplib2
 urllib
+mock
+unittest
