@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import argparse
-import os
 import json
 import re
 import xml.etree.ElementTree as ET

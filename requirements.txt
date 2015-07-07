@@ -1,5 +1,4 @@
 argparse
-os
 json
 re
 xml.etree.ElementTree
